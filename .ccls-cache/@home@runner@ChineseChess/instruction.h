@@ -22,8 +22,9 @@ struct Instruction {
 
 	Position from;
 	Position to;
+	bool check;
 
-	Instruction(const string& inst);
+	Instruction(const string& inst, bool checkCanMove = true);
 
 	InstructionType getType(const Board& board, int& indexPiece, int& indexTargetPiece) const;
 

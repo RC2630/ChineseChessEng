@@ -9,11 +9,15 @@ InvalidInstructionException::InvalidInstructionException(const string& message)
 : exception()
 { }
 
-Instruction::Instruction(const string& inst) {
+Instruction::Instruction(const string& inst, bool checkCanMove) {
+
+	this->check = checkCanMove;
 	vector<string> parts = parse::parseAllArguments(inst);
+
 	if (parts.size() != 5 || parts.at(2) != "->") {
 		throw InvalidInstructionException("instruction has wrong number of input arguments, or the middle argument is not an arrow");
 	}
+
 	try {
 		this->from = Position(stoi(parts.at(0)), stoi(parts.at(1)));
 		this->to = Position(stoi(parts.at(3)), stoi(parts.at(4)));
@@ -22,6 +26,7 @@ Instruction::Instruction(const string& inst) {
 	} catch (const invalid_argument& e) {
 		throw InvalidInstructionException("input is not an integer, or input number is not within bounds of a Chinese Chess board");
 	}
+
 }
 
 InstructionType Instruction::getType(const Board& board, int& indexPiece, int& indexTargetPiece) const {
@@ -34,7 +39,7 @@ InstructionType Instruction::getType(const Board& board, int& indexPiece, int& i
 	}
 
 	// the piece there is of the wrong side (colour)
-	if (board.pieces.at(indexPiece)->side != board.nextTurn) {
+	if (board.pieces.at(indexPiece)->side != board.nextTurn && this->check) {
 		return InstructionType::INVALID;
 	}
 
@@ -45,15 +50,15 @@ InstructionType Instruction::getType(const Board& board, int& indexPiece, int& i
 
 	// the piece is trying to move to an empty location
 	if (indexTargetPiece == -1) {
-		return board.pieces.at(indexPiece)->canMoveTo(this->to, board) ? InstructionType::MOVE : InstructionType::INVALID;
+		return (board.pieces.at(indexPiece)->canMoveTo(this->to, board) || !check) ? InstructionType::MOVE : InstructionType::INVALID;
 	}
 	
 	// the piece is trying to move to the location of another friendly piece
 	if (board.pieces.at(indexTargetPiece)->side == board.pieces.at(indexPiece)->side) {
-		return InstructionType::INVALID;
+		return this->check ? InstructionType::INVALID : InstructionType::EAT;
 	}
 
 	// the piece is trying to eat an enemy piece and move to its location
-	return board.pieces.at(indexPiece)->canEat(*board.pieces.at(indexTargetPiece), board) ? InstructionType::EAT : InstructionType::INVALID;
+	return (board.pieces.at(indexPiece)->canEat(*board.pieces.at(indexTargetPiece), board) || !check) ? InstructionType::EAT : InstructionType::INVALID;
 
 }

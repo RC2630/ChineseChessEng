@@ -29,8 +29,8 @@ struct Piece {
 
 	Piece(Position pos, Side side, const string& name, wchar_t cNameRed, wchar_t cNameGreen);
 
-	string moveTo(Position newPos, const Board& board);
-	string eat(Piece& enemy, const Board& board);
+	string moveTo(Position newPos, const Board& board, bool checkCanMove = true);
+	string eat(Piece& enemy, const Board& board, bool checkCanEat = true);
 	wchar_t getChineseName() const;
 	void printChineseName() const;
 	string toString() const;

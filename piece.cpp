@@ -28,8 +28,8 @@ Piece::Piece(Position pos, Side side, const string& name, wchar_t cNameRed, wcha
 : pos(pos), name(name), chineseNameRed(cNameRed), chineseNameGreen(cNameGreen), side(side)
 { }
 
-string Piece::moveTo(Position newPos, const Board& board) {
-	if (this->canMoveTo(newPos, board)) {
+string Piece::moveTo(Position newPos, const Board& board, bool checkCanMove) {
+	if (this->canMoveTo(newPos, board) || !checkCanMove) {
 		string moveLog = this->toString() + " moved to " + newPos.toString();
 		this->pos = newPos;
 		return moveLog;
@@ -38,8 +38,8 @@ string Piece::moveTo(Position newPos, const Board& board) {
 	}
 }
 
-string Piece::eat(Piece& enemy, const Board& board) {
-	if (this->canEat(enemy, board)) {
+string Piece::eat(Piece& enemy, const Board& board, bool checkCanEat) {
+	if (this->canEat(enemy, board) || !checkCanEat) {
 		string eatLog = this->toString() + " ate " + enemy.toString();
 		this->pos = enemy.pos;
 		enemy.pos.setToEaten();

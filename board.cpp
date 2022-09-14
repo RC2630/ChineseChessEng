@@ -189,18 +189,18 @@ void Board::display() const {
 
 }
 
-string Board::move(Instruction inst) {
+string Board::move(Instruction inst, bool checkCanMove) {
 	int indexPiece = -2, indexTargetPiece = -2;
 	switch (inst.getType(*this, indexPiece, indexTargetPiece)) {
 		case InstructionType::INVALID: {
 			throw invalid_argument("instruction invalid");
 		break; } case InstructionType::MOVE: {
-			string moveLog = this->pieces.at(indexPiece)->moveTo(inst.to, *this);
-			this->nextTurn = (this->nextTurn == Side::RED) ? Side::GREEN : Side::RED;
+			string moveLog = this->pieces.at(indexPiece)->moveTo(inst.to, *this, checkCanMove);
+			if (checkCanMove) { this->nextTurn = (this->nextTurn == Side::RED) ? Side::GREEN : Side::RED; }
 			return moveLog;
 		break; } case InstructionType::EAT: {
-			string eatLog = this->pieces.at(indexPiece)->eat(*this->pieces.at(indexTargetPiece), *this);
-			this->nextTurn = (this->nextTurn == Side::RED) ? Side::GREEN : Side::RED;
+			string eatLog = this->pieces.at(indexPiece)->eat(*this->pieces.at(indexTargetPiece), *this, checkCanMove);
+			if (checkCanMove) { this->nextTurn = (this->nextTurn == Side::RED) ? Side::GREEN : Side::RED; }
 			return eatLog;
 		}
 	}

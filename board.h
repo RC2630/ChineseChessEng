@@ -25,7 +25,7 @@ struct Board {
 
 	int getIndexOfPieceAtPos(Position pos) const; // returns -1 to signify empty pos
 	void display() const;
-	string move(Instruction inst);
+	string move(Instruction inst, bool checkCanMove = true);
 	bool isGeneralAlive(Side side) const;
 	void printFrameToFile(const string& filename, bool overwrite) const;
 

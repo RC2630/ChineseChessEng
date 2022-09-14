@@ -32,8 +32,17 @@ int main() {
 		cout << ANSI_NORMAL;
 
 		if (strUtil::beginsWith(instruction, "/")) {
-			Command(instruction).execute(board);
+
+			try {
+				Command(instruction).execute(board);
+			} catch (...) {
+				cout << ANSI_MAGENTA << "\nThe command has an incorrect number of arguments, "				// parse function throws invalid_argument
+					 << "or at least one argument is of the wrong data type, "								// stoXX function throws invalid_argument
+					 << "or at least one argument is a number too big to be processed.\n" << ANSI_NORMAL;	// stoXX function throws out_of_range
+			}
+			
 			continue;
+
 		}
 
 		try {

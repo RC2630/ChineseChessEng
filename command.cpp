@@ -30,6 +30,16 @@ void Command::execute(Board& board) const {
 		restart(board);
 	} else if (parse::commandIs(command, "/skip")) {
 		skip(board);
+	} else if (parse::commandIs(command, "/clear")) {
+		clear(board);
+	} else if (parse::commandIs(command, "/place")) {
+		place(board);
+	} else if (parse::commandIs(command, "/remove")) {
+		remove(board);
+	} else if (parse::commandIs(command, "/force")) {
+		forceMove(board);
+	} else if (parse::commandIs(command, "/rebase")) {
+		rebase(board);
 	} else {
 		cout << ANSI_MAGENTA << "\nInvalid command. Try again!\n" << ANSI_NORMAL;
 	}
@@ -180,4 +190,132 @@ void Command::skip(Board& board) const {
 	cout << ANSI_CYAN << "\nThis turn has been skipped and is given to the other side.\n" << ANSI_NORMAL;
 	board.printFrameToFile(COM_CURR_MATCH_FRAMES, false);
 	file::outputStrVecAddTo({((originalSide == Side::GREEN) ? "Green" : "Red") + string(" skipped a turn")}, COM_CURR_MATCH_MOVES);
+}
+
+void Command::clear(Board& board) const {
+
+	const int MIDDLE_COLUMN = (Position::NUM_COLS + 1) / 2, RED_HOME_ROW = 1, GREEN_HOME_ROW = Position::NUM_ROWS;
+
+	for (int i = 0; i < board.pieces.size(); i++) {
+		Piece& piece = *board.pieces.at(i);
+		if (piece.name != "General") { // most pieces
+			piece.pos.setToEaten();
+		} else if (piece.side == Side::RED) { // red general
+			piece.pos = Position(MIDDLE_COLUMN, RED_HOME_ROW);
+		} else { // green general
+			piece.pos = Position(MIDDLE_COLUMN, GREEN_HOME_ROW);
+		}
+	}
+
+	file::clearFile(COM_CURR_MATCH_FRAMES);
+	file::clearFile(COM_CURR_MATCH_MOVES);
+	board.printFrameToFile(COM_CURR_MATCH_FRAMES, false);
+
+	cout << ANSI_CYAN << "\nEntire board cleared except for the generals.\n" << ANSI_NORMAL;
+
+}
+
+void Command::place(Board& board) const {
+
+	string sideString = parse::parseArgument(this->command, 1);
+	Side sideToPlace = ((sideString == "Red") ? Side::RED : Side::GREEN);
+	string pieceToPlace = parse::parseArgument(this->command, 2);
+	Position pos;
+
+	try {
+		pos = Position(parse::parseNumericalArgument(this->command, 3), parse::parseNumericalArgument(this->command, 4));
+	} catch (const invalid_argument& e) {
+		cout << ANSI_MAGENTA << "\nPosition is out of bounds, "											// Position constructor throws invalid_argument
+			 << "or position inputs are not integers, "													// stod function throws invalid_argument
+			 << "or position inputs are missing (incorrect number of arguments).\n" << ANSI_NORMAL;		// parse function throws invalid_argument
+		return;
+	}
+
+	if (board.getIndexOfPieceAtPos(pos) != -1) {
+		cout << ANSI_MAGENTA << "\nThere is already a piece at the given position.\n" << ANSI_NORMAL;
+		return;
+	}
+
+	for (int i = 0; i < board.pieces.size(); i++) {
+		Piece& piece = *board.pieces.at(i);
+		if (piece.name == pieceToPlace && piece.side == sideToPlace && piece.pos.isEaten()) {
+
+			piece.pos = pos;
+			string message = sideString + " " + pieceToPlace + " placed @ " + pos.toString();
+
+			board.printFrameToFile(COM_CURR_MATCH_FRAMES, false);
+			file::outputStrVecAddTo({message}, COM_CURR_MATCH_MOVES);
+
+			cout << ANSI_CYAN << "\n" << message << ".\n" << ANSI_NORMAL;
+			return;
+
+		}
+	}
+
+	cout << ANSI_MAGENTA << "\nThe given piece name is incorrect, or no copies of this piece has been eaten so far in this match.\n" << ANSI_NORMAL;
+
+}
+
+void Command::remove(Board& board) const {
+
+	Position pos;
+
+	try {
+		pos = Position(parse::parseNumericalArgument(this->command, 1), parse::parseNumericalArgument(this->command, 2));
+	} catch (const invalid_argument& e) {
+		cout << ANSI_MAGENTA << "\nPosition is out of bounds, "											// Position constructor throws invalid_argument
+			<< "or position inputs are not integers, "													// stod function throws invalid_argument
+			<< "or position inputs are missing (incorrect number of arguments).\n" << ANSI_NORMAL;		// parse function throws invalid_argument
+		return;
+	}
+
+	int pieceToRemoveIndex = board.getIndexOfPieceAtPos(pos);
+
+	if (pieceToRemoveIndex == -1) {
+		cout << ANSI_MAGENTA << "\nThere is no piece at the given position to begin with.\n" << ANSI_NORMAL;
+		return;
+	}
+
+	Piece& pieceToRemove = *board.pieces.at(pieceToRemoveIndex);
+	Position pieceToRemoveOgPos = pieceToRemove.pos;
+	pieceToRemove.pos.setToEaten();
+
+	string message = string((pieceToRemove.side == Side::RED) ? "Red" : "Green") +
+					 " " + pieceToRemove.name + " @ " + pieceToRemoveOgPos.toString() + " was removed";
+
+	board.printFrameToFile(COM_CURR_MATCH_FRAMES, false);
+	file::outputStrVecAddTo({message}, COM_CURR_MATCH_MOVES);
+
+	cout << ANSI_CYAN << "\n" << message << ".\n" << ANSI_NORMAL;
+
+}
+
+void Command::forceMove(Board& board) const {
+
+	string instruction = parse::parseArgumentUntilEnd(this->command);
+	string log = "FORCE: ";
+
+	try {
+		log += board.move(Instruction(instruction, false), false);
+	} catch (const InvalidInstructionException& e) {
+		cout << ANSI_MAGENTA << "\nForce move instruction syntax is incorrect. Try again!\n" << ANSI_NORMAL;
+		return;
+	} catch (const invalid_argument& e) {
+		cout << ANSI_MAGENTA << "\nYou are attempting to move a piece from an empty position. Try again!\n" << ANSI_NORMAL;
+		return;
+	}
+
+	board.printFrameToFile(COM_CURR_MATCH_FRAMES, false);
+	file::outputStrVecAddTo({log}, COM_CURR_MATCH_MOVES);
+
+	cout << ANSI_CYAN << "\n" << log << ".\n" << ANSI_NORMAL;
+
+}
+
+void Command::rebase(const Board& board) const {
+	file::clearFile(COM_CURR_MATCH_FRAMES);
+	file::clearFile(COM_CURR_MATCH_MOVES);
+	board.printFrameToFile(COM_CURR_MATCH_FRAMES, false);
+	cout << ANSI_CYAN << "\nThe current frame has been set as the first frame of this match. "
+		 << "All previous frames and moves have been erased.\n" << ANSI_NORMAL;
 }
