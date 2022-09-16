@@ -177,6 +177,7 @@ void Board::display(bool displayProtectedness) const {
 				cout << "|" << strUtil::spaces(CELL_WIDTH - 1);
 			}
 		}
+		cout << "|\n    ";
 
 	}
 

@@ -342,3 +342,21 @@ void Command::rebase(const Board& board) const {
 	cout << ANSI_CYAN << "\nThe current frame has been set as the first frame of this match. "
 		 << "All previous frames and moves have been erased.\n" << ANSI_NORMAL;
 }
+
+void Command::concede(const Board& board, bool& hasConceded) const {
+	hasConceded = true;
+	cout << ((board.nextTurn == Side::RED) ? ANSI_GREEN : ANSI_RED)
+		 << "\nCongratulations! The " << ((board.nextTurn == Side::RED) ? "GREEN" : "RED")
+		 << " side has won this game, through the concession of the "
+		 << ((board.nextTurn == Side::RED) ? "RED" : "GREEN") << " side!\n" << ANSI_NORMAL;
+}
+
+void Command::showProt(bool& displayProtectedness) const {
+	displayProtectedness = parse::parseBooleanArgument(this->command);
+	cout << ANSI_CYAN << "\nWhen the board is displayed from now on, each cell's protectedness will now "
+		 << (displayProtectedness ? "" : "NOT ") << "be shown.\n" << ANSI_NORMAL;
+}
+
+void Command::reload(Board& board, bool ignore1, bool ignore2) const {
+	Command("/replay " + COM_INTERNAL_USE_CURR + " reload").execute(board, ignore1, ignore2);
+}
