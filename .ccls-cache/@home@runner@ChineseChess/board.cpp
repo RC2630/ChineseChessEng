@@ -120,7 +120,7 @@ void Board::displayRiver() {
 
 }
 
-void Board::display() const {
+void Board::display(bool displayProtectedness) const {
 
 	// initial newline
 	cout << "\n    ";
@@ -166,11 +166,17 @@ void Board::display() const {
 		}
 		cout << "|" << ((y == 10) ? " " : "  ") << ANSI_YELLOW << y << ANSI_NORMAL << "\n    ";
 
-		// buffer line (again)
-		for (int x = 0; x < Position::NUM_COLS; x++) {
-			cout << "|" << strUtil::spaces(CELL_WIDTH - 1);
+		// protectedness line
+		for (int x = 1; x <= Position::NUM_COLS; x++) {
+			if (displayProtectedness) {
+				auto [redProt, greenProt] = const_cast<Board*>(this)->getProtectedness(Position(x, y));
+				cout << "| " << ANSI_RED << ((redProt != 0) ? to_string(redProt) : " ") << ANSI_NORMAL
+					 << strUtil::spaces(CELL_WIDTH - 3 - to_string(redProt).size() - to_string(greenProt).size())
+					 << ANSI_GREEN << ((greenProt != 0) ? to_string(greenProt) : " ") << ANSI_NORMAL << " ";
+			} else {
+				cout << "|" << strUtil::spaces(CELL_WIDTH - 1);
+			}
 		}
-		cout << "|\n    ";
 
 	}
 
@@ -232,5 +238,44 @@ void Board::printFrameToFile(const string& filename, bool overwrite) const {
 	} else {
 		file::outputStrVecAddTo({frame}, filename);
 	}
+
+}
+
+// returns {redProt, greenProt}
+pair<int, int> Board::getProtectedness(Position pos) {
+
+	pair<int, int> protectedness = {0, 0};
+	bool posCurrentlyEmpty = (this->getIndexOfPieceAtPos(pos) == -1);
+	int originalPiecesSize = this->pieces.size();
+
+	for (int i = 0; i < originalPiecesSize; i++) {
+
+		const Piece& piece = *this->pieces.at(i);
+
+		if (piece.pos.isEaten()) {
+			continue;
+		}
+
+		// add a temporary piece if the space is currently empty
+		if (posCurrentlyEmpty) {
+			this->pieces.push_back(make_unique<Footman>(pos, Side::RED)); // choice of Footman and Red are arbitrary
+		}
+
+		if (piece.canEat(*this->pieces.at(this->getIndexOfPieceAtPos(pos)), *this)) {
+			if (piece.side == Side::RED) {
+				protectedness.first++;
+			} else {
+				protectedness.second++;
+			}
+		}
+
+		// delete the temporary piece
+		if (this->pieces.size() > originalPiecesSize) {
+			this->pieces.pop_back();
+		}
+
+	}
+
+	return protectedness;
 
 }

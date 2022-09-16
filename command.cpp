@@ -9,7 +9,7 @@ Command::Command(const string& com)
 : command(com)
 { }
 
-void Command::execute(Board& board) const {
+void Command::execute(Board& board, bool& displayProtectedness, bool& hasConceded) const {
 	if (parse::commandIs(command, "/help")) {
 		cout << ANSI_CYAN << "\n" << COMMAND_HELP << ANSI_NORMAL;
 	} else if (parse::commandIs(command, "/save") && parse::parseArgument(command, 1) == "frame") {
@@ -23,7 +23,7 @@ void Command::execute(Board& board) const {
 	} else if (parse::commandIs(command, "/eaten")) {
 		eaten(board);
 	} else if (parse::commandIs(command, "/replay")) {
-		replay(board);
+		replay(board, displayProtectedness);
 	} else if (parse::commandIs(command, "/exit")) {
 		exit();
 	} else if (parse::commandIs(command, "/restart")) {
@@ -40,6 +40,12 @@ void Command::execute(Board& board) const {
 		forceMove(board);
 	} else if (parse::commandIs(command, "/rebase")) {
 		rebase(board);
+	} else if (parse::commandIs(command, "/showprot")) {
+		showProt(displayProtectedness);
+	} else if (parse::commandIs(command, "/concede")) {
+		concede(board, hasConceded);
+	} else if (parse::commandIs(command, "/reload")) {
+		reload(board, displayProtectedness, hasConceded);
 	} else {
 		cout << ANSI_MAGENTA << "\nInvalid command. Try again!\n" << ANSI_NORMAL;
 	}
@@ -145,22 +151,39 @@ void Command::eaten(const Board& board) const {
 
 }
 
-void Command::replay(Board& board) const {
+void Command::replay(Board& board, bool displayProtectedness) const {
 	
-	string label = parse::parseArgument(command);
+	string label = parse::parseArgument(command, 1);
 	vector<string> frames, moves;
 
-	file::inputStrVecFrom(frames, "saves/" + label + "_frames.txt");
-	file::inputStrVecFrom(moves, "saves/" + label + "_moves.txt");
+	if (label != COM_INTERNAL_USE_CURR) {
 
-	file::outputVecTo(frames, COM_CURR_MATCH_FRAMES);
-	file::outputVecTo(moves, COM_CURR_MATCH_MOVES);
+		file::inputStrVecFrom(frames, "saves/" + label + "_frames.txt");
+		file::inputStrVecFrom(moves, "saves/" + label + "_moves.txt");
 
-	cout << ANSI_CYAN << "\nMatch loaded successfully. Replay starting now ......\n" << ANSI_NORMAL;
+		file::outputVecTo(frames, COM_CURR_MATCH_FRAMES);
+		file::outputVecTo(moves, COM_CURR_MATCH_MOVES);
+
+		cout << ANSI_CYAN << "\nMatch loaded successfully. Replay starting now ......\n" << ANSI_NORMAL;
+
+	} else {
+
+		file::inputStrVecFrom(frames, COM_CURR_MATCH_FRAMES);
+		file::inputStrVecFrom(moves, COM_CURR_MATCH_MOVES);
+
+		if (parse::parseArgument(command, 2) == "restore") {
+			cout << ANSI_CYAN << "\nCurrently saved frames and moves restored. Replay starting now ......\n" << ANSI_NORMAL;
+		} else if (parse::parseArgument(command, 2) == "reload") {
+			cout << ANSI_CYAN << "\nCurrently saved frames and moves reloaded from save files. "
+				 << "Note that external save-file manipulation can lead to incorrect/unexpected replay behaviour. "
+				 << "Replay starting now ......\n" << ANSI_NORMAL;
+		}
+		
+	}
 
 	for (int i = 0; i < moves.size(); i++) {
 		board = Board(frames.at(i));
-		board.display();
+		board.display(displayProtectedness);
 		cout << ((board.nextTurn == Side::RED) ? ANSI_RED : ANSI_GREEN) << "\n"
 			 << moves.at(i) << ".\n" << ANSI_NORMAL;
 	}
@@ -318,4 +341,22 @@ void Command::rebase(const Board& board) const {
 	board.printFrameToFile(COM_CURR_MATCH_FRAMES, false);
 	cout << ANSI_CYAN << "\nThe current frame has been set as the first frame of this match. "
 		 << "All previous frames and moves have been erased.\n" << ANSI_NORMAL;
+}
+
+void Command::concede(const Board& board, bool& hasConceded) const {
+	hasConceded = true;
+	cout << ((board.nextTurn == Side::RED) ? ANSI_GREEN : ANSI_RED)
+		 << "\nCongratulations! The " << ((board.nextTurn == Side::RED) ? "GREEN" : "RED")
+		 << " side has won this game, through the concession of the "
+		 << ((board.nextTurn == Side::RED) ? "RED" : "GREEN") << " side!\n" << ANSI_NORMAL;
+}
+
+void Command::showProt(bool& displayProtectedness) const {
+	displayProtectedness = parse::parseBooleanArgument(this->command);
+	cout << ANSI_CYAN << "\nWhen the board is displayed from now on, each cell's protectedness will now "
+		 << (displayProtectedness ? "" : "NOT ") << "be shown.\n" << ANSI_NORMAL;
+}
+
+void Command::reload(Board& board, bool ignore1, bool ignore2) const {
+	Command("/replay " + COM_INTERNAL_USE_CURR + " reload").execute(board, ignore1, ignore2);
 }
