@@ -63,7 +63,7 @@ private:
 	void rebase(const Board& board) const;
 	void concede(const Board& board, bool& hasConceded) const;
 	void showProt(bool& displayProtectedness) const;
-	void reload(Board& board, bool ignore1, bool ignore2) const;
+	void reload(Board& board, bool displayProtectedness) const;
 
 };
 

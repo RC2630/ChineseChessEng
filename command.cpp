@@ -45,7 +45,7 @@ void Command::execute(Board& board, bool& displayProtectedness, bool& hasConcede
 	} else if (parse::commandIs(command, "/concede")) {
 		concede(board, hasConceded);
 	} else if (parse::commandIs(command, "/reload")) {
-		reload(board, displayProtectedness, hasConceded);
+		reload(board, displayProtectedness);
 	} else {
 		cout << ANSI_MAGENTA << "\nInvalid command. Try again!\n" << ANSI_NORMAL;
 	}
@@ -357,6 +357,6 @@ void Command::showProt(bool& displayProtectedness) const {
 		 << (displayProtectedness ? "" : "NOT ") << "be shown.\n" << ANSI_NORMAL;
 }
 
-void Command::reload(Board& board, bool ignore1, bool ignore2) const {
-	Command("/replay " + COM_INTERNAL_USE_CURR + " reload").execute(board, ignore1, ignore2);
+void Command::reload(Board& board, bool displayProtectedness) const {
+	Command("/replay " + COM_INTERNAL_USE_CURR + " reload").replay(board, displayProtectedness);
 }
